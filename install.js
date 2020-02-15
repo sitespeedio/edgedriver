@@ -102,7 +102,11 @@ async function download() {
               );
               zip.close();
               await unlink('vendor/msedgedriver.zip');
-              await chmod('vendor/msedgedriver', '755');
+              let driverPath = 'vendor/msedgedriver';
+                if (os.platform() === 'win32') {
+                  driverPath = driverPath + '.exe';
+                }
+              await chmod(driverPath, '755');
             });
           });
         });
