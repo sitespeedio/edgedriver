@@ -12,7 +12,7 @@ const mkdir = promisify(fs.mkdir);
 const chmod = promisify(fs.chmod);
 
 // The version of the driver that will be installed
-const EDGEDRIVER_VERSION = `${pkg.edgedriver_version}`;
+const EDGEDRIVER_VERSION = process.env.EDGEDRIVER_VERSION ? process.env.EDGEDRIVER_VERSION : `${pkg.edgedriver_version}`;
 
 function byteHelper(value) {
   // https://gist.github.com/thomseddon/3511330
