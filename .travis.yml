@@ -8,7 +8,7 @@ matrix:
       - name: "Test on OS X"
         os: osx
         osx_image: xcode11.3  
-      script:  node install.js 
+        script:  node install.js 
       - name: "Test on Windows"
         os: windows         
         script: node install.js 
