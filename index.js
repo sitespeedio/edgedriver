@@ -7,7 +7,7 @@ const pkg = require('./package');
 module.exports = {
   version: pkg.version,
   binPath: function() {
-    let driverPath = path.resolve(__dirname, 'vendor', 'edgedriver');
+    let driverPath = path.resolve(__dirname, 'vendor', 'msedgedriver');
     if (os.platform() === 'win32') {
       driverPath = driverPath + '.exe';
     }
