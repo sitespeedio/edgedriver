@@ -37,7 +37,7 @@ function getDriverUrl() {
     case 'darwin':
       return urlBase + 'edgedriver_mac64.zip';
     case 'linux':
-      return undefined;
+      return urlBase + 'edgedriver_linux64.zip';
     case 'win32':
       if (os.arch() === 'x64') return urlBase + 'edgedriver_win64.zip';
       else if (os.arch() === 'x32') return urlBase + 'edgedriver_win32.zip';
