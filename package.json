@@ -1,7 +1,7 @@
 {
   "name": "@sitespeed.io/edgedriver",
   "version": "92.0.902-62",
-  "edgedriver_version": "92.0.902.62",
+  "edgedriver_version": "93.0.910.5",
   "description": "Install and launch Edgedriver for Mac, Windows and Linux",
   "main": "index.js",
   "files": [
@@ -29,7 +29,7 @@
   "license": "MIT",
   "dependencies": {
     "node-downloader-helper": "1.0.18",
-    "node-stream-zip": "1.14.0"
+    "node-stream-zip": "1.15.0"
   },
   "devDependencies": {
     "eslint": "5.10.0",
