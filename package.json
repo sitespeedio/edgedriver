@@ -1,7 +1,7 @@
 {
   "name": "@sitespeed.io/edgedriver",
   "version": "100.0.1185-29",
-  "edgedriver_version": "100.0.1185.29",
+  "edgedriver_version": "101.0.1210.32",
   "description": "Install and launch Edgedriver for Mac, Windows and Linux",
   "main": "index.js",
   "files": [
@@ -28,7 +28,7 @@
   },
   "license": "MIT",
   "dependencies": {
-    "node-downloader-helper": "1.0.18",
+    "node-downloader-helper": "2.1.1",
     "node-stream-zip": "1.15.0"
   },
   "devDependencies": {
