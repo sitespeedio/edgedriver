@@ -35,6 +35,8 @@ function getDriverUrl() {
 
   switch (os.platform()) {
     case 'darwin':
+      if (process.arch === 'arm64')
+        return urlBase + 'edgedriver_mac64_m1.zip';
       return urlBase + 'edgedriver_mac64.zip';
     case 'linux':
       return urlBase + 'edgedriver_linux64.zip';
