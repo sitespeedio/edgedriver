@@ -103,6 +103,7 @@ async function download() {
               );
               zip.close();
               await unlink('vendor/msedgedriver.zip');
+              await unlink('vendor/Driver_Notes/credits.html');
               let driverPath = 'vendor/msedgedriver';
                 if (os.platform() === 'win32') {
                   driverPath = driverPath + '.exe';
