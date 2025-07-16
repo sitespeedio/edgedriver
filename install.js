@@ -30,7 +30,7 @@ function getDriverUrl() {
   if (process.env.EDGEDRIVER_BASE_URL) {
     urlBase = process.env.EDGEDRIVER_BASE_URL;
   } else {
-    urlBase = `https://msedgedriver.azureedge.net/${EDGEDRIVER_VERSION}/`;
+    urlBase = `https://msedgedriver.microsoft.com/${EDGEDRIVER_VERSION}/`;
   }
 
   switch (os.platform()) {
