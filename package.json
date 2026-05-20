@@ -1,7 +1,7 @@
 {
   "name": "@sitespeed.io/edgedriver",
   "version": "146.0.3856",
-  "edgedriver_version": "146.0.3856.84",
+  "edgedriver_version": "148.0.3967.70",
   "description": "Install and launch Edgedriver for Mac, Windows and Linux",
   "type": "module",
   "main": "index.js",
