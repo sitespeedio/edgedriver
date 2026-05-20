@@ -4,10 +4,12 @@ import { mkdir, unlink, chmod } from 'node:fs/promises';
 import { createWriteStream } from 'node:fs';
 import { pipeline } from 'node:stream/promises';
 import { Readable } from 'node:stream';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
-import StreamZip from 'node-stream-zip';
 
+const execFileAsync = promisify(execFile);
 const require = createRequire(import.meta.url);
 const pkg = require('./package.json');
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -72,13 +74,9 @@ async function downloadFile(url, destination) {
   await pipeline(body, createWriteStream(destination));
 }
 
+// System tar (bsdtar on macOS/Windows 10+, GNU tar on Linux) can extract zips.
 async function extractArchive(zipPath, destDir) {
-  const zip = new StreamZip.async({ file: zipPath });
-  try {
-    await zip.extract(undefined, destDir);
-  } finally {
-    await zip.close();
-  }
+  await execFileAsync('tar', ['-xf', zipPath, '-C', destDir]);
 }
 
 async function tryUnlink(p) {
