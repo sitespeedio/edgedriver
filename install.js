@@ -1,128 +1,128 @@
 'use strict';
 
+const os = require('node:os');
+const path = require('node:path');
+const { mkdir, unlink, chmod } = require('node:fs/promises');
+const { createWriteStream } = require('node:fs');
+const { pipeline } = require('node:stream/promises');
+const { Readable } = require('node:stream');
 const StreamZip = require('node-stream-zip');
-const os = require('os');
-const fs = require('fs');
-const path = require('path');
-const pkg = require('./package');
-const { DownloaderHelper } = require('node-downloader-helper');
-const { promisify } = require('util');
-const unlink = promisify(fs.unlink);
-const mkdir = promisify(fs.mkdir);
-const chmod = promisify(fs.chmod);
+const pkg = require('./package.json');
 
 // The version of the driver that will be installed
-const EDGEDRIVER_VERSION = process.env.EDGEDRIVER_VERSION ? process.env.EDGEDRIVER_VERSION : `${pkg.edgedriver_version}`;
+const EDGEDRIVER_VERSION =
+  process.env.EDGEDRIVER_VERSION || pkg.edgedriver_version;
 
 function byteHelper(value) {
   // https://gist.github.com/thomseddon/3511330
-  const units = ['b', 'kB', 'MB', 'GB', 'TB'],
-    number = Math.floor(Math.log(value) / Math.log(1024));
-  return (
-    (value / Math.pow(1024, Math.floor(number))).toFixed(1) +
-    ' ' +
-    units[number]
-  );
+  if (!value) return '?';
+  const units = ['B', 'kB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(value) / Math.log(1024));
+  return `${(value / Math.pow(1024, i)).toFixed(1)} ${units[i]}`;
 }
 
-function getDriverUrl() {
-  let urlBase;
-  if (process.env.EDGEDRIVER_BASE_URL) {
-    urlBase = process.env.EDGEDRIVER_BASE_URL;
-  } else {
-    urlBase = `https://msedgedriver.microsoft.com/${EDGEDRIVER_VERSION}/`;
+function getDriverArchiveName() {
+  const platform = os.platform();
+  const arch = os.arch();
+  if (platform === 'darwin') {
+    return arch === 'arm64' ? 'edgedriver_mac64_m1.zip' : 'edgedriver_mac64.zip';
   }
+  if (platform === 'linux') {
+    return 'edgedriver_linux64.zip';
+  }
+  if (platform === 'win32') {
+    if (arch === 'x64') return 'edgedriver_win64.zip';
+    if (arch === 'ia32') return 'edgedriver_win32.zip';
+  }
+  return undefined;
+}
 
-  switch (os.platform()) {
-    case 'darwin':
-      if (process.arch === 'arm64')
-        return urlBase + 'edgedriver_mac64_m1.zip';
-      return urlBase + 'edgedriver_mac64.zip';
-    case 'linux':
-      return urlBase + 'edgedriver_linux64.zip';
-    case 'win32':
-      if (os.arch() === 'x64') return urlBase + 'edgedriver_win64.zip';
-      else if (os.arch() === 'x32') return urlBase + 'edgedriver_win32.zip';
-    default:
-      return undefined;
+function getDriverUrl(archive) {
+  const base =
+    process.env.EDGEDRIVER_BASE_URL ||
+    `https://msedgedriver.microsoft.com/${EDGEDRIVER_VERSION}/`;
+  return `${base}${archive}`;
+}
+
+async function downloadFile(url, destination) {
+  const response = await fetch(url);
+  if (!response.ok || !response.body) {
+    throw new Error(
+      `HTTP ${response.status} ${response.statusText} for ${url}`
+    );
+  }
+  const total = Number(response.headers.get('content-length')) || 0;
+  let downloaded = 0;
+  let lastLog = 0;
+  const body = Readable.fromWeb(response.body);
+  body.on('data', chunk => {
+    downloaded += chunk.length;
+    const now = Date.now();
+    if (now - lastLog >= 250) {
+      const pct = total ? ((downloaded / total) * 100).toFixed(1) : '?';
+      console.log(`${pct}% [${byteHelper(downloaded)}/${byteHelper(total)}]`);
+      lastLog = now;
+    }
+  });
+  await pipeline(body, createWriteStream(destination));
+}
+
+async function extractArchive(zipPath, destDir) {
+  const zip = new StreamZip.async({ file: zipPath });
+  try {
+    await zip.extract(null, destDir);
+  } finally {
+    await zip.close();
   }
 }
 
-async function download() {
+async function tryUnlink(p) {
+  try {
+    await unlink(p);
+  } catch (err) {
+    if (err.code !== 'ENOENT') throw err;
+  }
+}
+
+async function install() {
   if (
     process.env.npm_config_edgedriver_skip_download ||
     process.env.EDGEDRIVER_SKIP_DOWNLOAD
   ) {
     console.log('Skip downloading Edgedriver');
-  } else {
-    const downloadUrl = getDriverUrl();
-    if (downloadUrl) {
-      try {
-        await mkdir('vendor');
-      } catch (e) {
-        try {
-          await unlink('vendor/msedgedriver');
-        } catch (e) {
-          // DO nada
-        }
-      }
-      const dl = new DownloaderHelper(downloadUrl, 'vendor', {
-        fileName: 'msedgedriver.zip'
-      });
-
-      dl.on('error', err =>
-        console.error('Could not download Edgedriver: ' + downloadUrl, err)
-      )
-        .on('progress', stats => {
-          const progress = stats.progress.toFixed(1);
-          const downloaded = byteHelper(stats.downloaded);
-          const total = byteHelper(stats.total);
-          console.log(`${progress}% [${downloaded}/${total}]`);
-        })
-        .on('end', () => {
-          const zip = new StreamZip({
-            file: 'vendor/msedgedriver.zip',
-            storeEntries: true
-          });
-          zip.on('error', function(err) {
-            // We got an error from unpacking
-            console.error(
-              `Edgedriver ${EDGEDRIVER_VERSION} could not be installed: ${err} `
-            );
-            // How should we exit?
-          });
-          zip.on('ready', () => {
-            zip.extract(null, './vendor', async err => {
-              console.log(
-                err
-                  ? 'Could not extract and install Edgedriver'
-                  : `Edgedriver ${EDGEDRIVER_VERSION} installed in ${path.join(
-                      __dirname,
-                      'vendor'
-                    )}`
-              );
-              zip.close();
-              await unlink('vendor/msedgedriver.zip');
-              await unlink('vendor/Driver_Notes/credits.html');
-              let driverPath = 'vendor/msedgedriver';
-                if (os.platform() === 'win32') {
-                  driverPath = driverPath + '.exe';
-                }
-              await chmod(driverPath, '755');
-            });
-          });
-        });
-
-      dl.start();
-    } else {
-      console.log(
-        'Skipping installing Edgedriver on ' +
-          os.platform() +
-          ' for ' +
-          os.arch() +
-          " since there's no official build"
-      );
-    }
+    return;
   }
+
+  const archive = getDriverArchiveName();
+  if (!archive) {
+    console.log(
+      `Skipping installing Edgedriver on ${os.platform()} for ${os.arch()} since there's no official build`
+    );
+    return;
+  }
+
+  const url = getDriverUrl(archive);
+  const vendorDir = path.resolve(__dirname, 'vendor');
+  await mkdir(vendorDir, { recursive: true });
+
+  const zipPath = path.join(vendorDir, 'msedgedriver.zip');
+  const ext = os.platform() === 'win32' ? '.exe' : '';
+  const binPath = path.join(vendorDir, `msedgedriver${ext}`);
+
+  await tryUnlink(binPath);
+
+  console.log(`Downloading Edgedriver ${EDGEDRIVER_VERSION} from ${url}`);
+  await downloadFile(url, zipPath);
+  await extractArchive(zipPath, vendorDir);
+  await tryUnlink(zipPath);
+  await tryUnlink(path.join(vendorDir, 'Driver_Notes', 'credits.html'));
+  await chmod(binPath, 0o755);
+  console.log(`Edgedriver ${EDGEDRIVER_VERSION} installed in ${vendorDir}`);
 }
-download();
+
+install().catch(err => {
+  console.error(
+    `Edgedriver ${EDGEDRIVER_VERSION} could not be installed: ${err.message}`
+  );
+  process.exit(1);
+});
