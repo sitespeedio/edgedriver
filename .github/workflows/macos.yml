@@ -18,3 +18,5 @@ jobs:
     - name: Install 
       run:
         npm ci
+    - name: Test
+      run: node test.js
