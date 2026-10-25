@@ -14,8 +14,7 @@
   ],
   "scripts": {
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
-    "install": "node install.js"
+    "lint:fix": "eslint . --fix"
   },
   "keywords": [
     "webdriver",
